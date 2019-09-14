@@ -1,0 +1,19 @@
+{
+  "name": "flow-gaming-api-2",
+  "version": "2.1.0",
+  "description": "This is the Flow Gaming API v2 Server.",
+  "author": "Psaidwid",
+  "main": "api.js",
+  "scripts": {
+    "start": "node api.js"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.4",
+    "express": "^4.17.1",
+    "express-graphql": "^0.9.0",
+    "graphql": "^14.4.2",
+    "mongo": "^0.1.0",
+    "pug": "^2.0.3",
+    "uuidv4": "^4.0.0"
+  }
+}
