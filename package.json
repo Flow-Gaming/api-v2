@@ -1,7 +1,7 @@
 {
   "name": "flow-gaming-api-2",
-  "version": "2.1.3",
-  "description": "This is the Flow Gaming API v2 Server",
+  "version": "2.1.0",
+  "description": "This is the Flow Gaming API v2 Server.",
   "author": "Psaidwid",
   "main": "api.js",
   "scripts": {
