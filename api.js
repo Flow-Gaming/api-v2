@@ -1,3 +1,4 @@
+var packageInfo = require('./package.json');
 var express = require('express');
 var app = express();
 var cookieParser = require('cookie-parser');
@@ -128,6 +129,10 @@ app.use('/graphql', graphqlHTTP(function(req, res, params) {
   }
 }));
 
+app.get('/', (req, res) => {
+  res.send(packageInfo.description + " on build " + packageInfo.version);
+});
+
 //=========================== Functions =============================
 
 function getUser (search, context) {
@@ -135,7 +140,7 @@ function getUser (search, context) {
     if (context.req == null) {
       reportError(reject, "Request is Null");
     } else if (context.req.cookies.id == null) {
-      reportError(reject, ErrorStrings.INVALID_ID);
+      reject({error: "User Not Authorized to access this Data"});
     }
 
     console.log('getUser(' + search.type + ', ' + search.identifier + ') from ' + context.req.cookies.id);
@@ -147,13 +152,13 @@ function getUser (search, context) {
           cUsers.findOne({uniqueid: search.identifier}, function(err, res) {
             if (err) reject(err);
             if (res == null) {
-              return reportError(reject, ErrorStrings.INVALID_SEARCH);
+              return reportError(reject, "Invalid Search");
             } else {
               isAuthOrMod(context.req.cookies.id, res.uniqueid).then((isUserAuthed) => {
                 if (isUserAuthed) {
                   resolve(res);
                 } else {
-                  reportError(reject, ErrorStrings.UNAUTHORIZED);
+                  reportError(reject, "User Not Authorized to access this Data");
                 }
               });
             }
@@ -165,13 +170,13 @@ function getUser (search, context) {
           cUsers.findOne({discordId: search.identifier}, function(err, res) {
             if (err) reject(err);
             if (res == null) {
-              reportError(reject, ErrorStrings.INVALID_SEARCH);
+              reportError(reject, "Invalid Search");
             } else {
               isAuthOrMod(context.req.cookies.id, res.uniqueid).then((isUserAuthed) => {
                 if (isUserAuthed) {
                   resolve(res);
                 } else {
-                  reportError(reject, ErrorStrings.UNAUTHORIZED);
+                  reportError(reject, "User Not Authorized to access this Data");
                 }
               });
             }
@@ -185,14 +190,14 @@ function getUser (search, context) {
             if (err) reject(err);
 
             if (res == null) {
-              reportError(reject, ErrorStrings.INVALID_SEARCH);
+              reportError(reject, "Invalid Search");
             } else {
               isAuthOrMod(context.req.cookies.id, res.uniqueid).then((isUserAuthed) => {
                 console.log(isUserAuthed);
                 if (isUserAuthed) {
                   resolve(res);
                 } else {
-                  reportError(reject, ErrorStrings.UNAUTHORIZED);
+                  reportError(reject, "User Not Authorized to access this Data");
                 }
               });
             }
@@ -204,13 +209,13 @@ function getUser (search, context) {
           cUsers.findOne({email: search.identifier}, function(err, res) {
             if (err) reject(err);
             if (res == null) {
-              reportError(reject, ErrorStrings.INVALID_SEARCH);
+              reportError(reject, "Invalid Search");
             } else {
               isAuthOrMod(context.req.cookies.id, res.uniqueid).then((isUserAuthed) => {
                 if (isUserAuthed) {
                   resolve(res);
                 } else {
-                  return reportError(ErrorStrings.UNAUTHORIZED);
+                  return reportError("User Not Authorized to access this Data");
                 }
               });
             }
@@ -218,7 +223,7 @@ function getUser (search, context) {
         }));
         break;
       default:
-        reportError(reject, ErrorStrings.INVALID_SEARCH);
+        reportError(reject, "Invalid Search Type");
     }
   });
 }
@@ -238,7 +243,7 @@ function getAllUsers(token, context) {
           resolve(users);
         });
       } else {
-        reportError(reject, ErrorStrings.UNAUTHORIZED);
+        reportError(reject, "User Not Authorized to access this Data");
       }
     });
   }).catch((error) => {
@@ -262,7 +267,7 @@ function editUser (user, context) {
           user.field != FieldType.ipList &&
           user.field != FieldType.pc_hwid &&
           user.field != FieldType.access
-        ) reportError(reject, ErrorStrings.INVALID_FIELD);
+        ) reportError(reject, "Invalid User Field");
         console.log("editUser("+ user.uniqueid +", "+ user.field +", "+ user.data +") from "+ sanitizeString(context.req.cookies.id));
 
         var cUsers = dbo.collection("users");
@@ -276,7 +281,7 @@ function editUser (user, context) {
                   resolve(true);
                 });
               } else {
-                reportError(reject, ErrorStrings.UNAUTHORIZED);
+                reportError(reject, "User Not Authorized to change this Data");
               }
             });
             break;
@@ -287,15 +292,9 @@ function editUser (user, context) {
             });
             break;
           case FieldType.uniqueid:
-            cUsers.findOne({uniqueid: sanitizeString(context.req.cookies.id)}, function(err, myUserData) {
-              if (myUserData.rank >= Ranks.Admin) {
-                cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { uniqueid: sanitizeString(user.data)}}, function(err, commandResult) {
-                  console.log(commandResult.result);
-                  resolve(true);
-                });
-              } else {
-                reportError(reject, ErrorStrings.UNAUTHORIZED);
-              }
+            cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { uniqueid: sanitizeString(user.data)}}, function(err, commandResult) {
+              console.log(commandResult.result);
+              resolve(true);
             });
             break;
           case FieldType.email:
@@ -324,7 +323,7 @@ function editUser (user, context) {
                   resolve(true);
                 });
               } else {
-                reportError(reject, ErrorStrings.UNAUTHORIZED);
+                reportError(reject, "User Not Authorized to change this Data");
               }
             });
             break;
@@ -346,10 +345,10 @@ function editUser (user, context) {
             });
             break;
           default:
-            reportError(reject, ErrorStrings.INVALID_FIELD);
+            reportError(reject, "Invalid Field Type");
         }
       } else {
-        reportError(reject, ErrorStrings.UNAUTHORIZED);
+        reportError(reject, "User Not Authorized to access this Data");
       }
     });
   }).catch((error) => {
@@ -364,7 +363,7 @@ function createUser (user, context) {
       if (isUserAuthed) {
         var cUsers = dbo.collection("users");
 
-        var newUser = {
+        cUsers.insertOne({
           rank: '0',
           username: user.username,
           uniqueid: uuidv4(),
@@ -375,19 +374,17 @@ function createUser (user, context) {
           ipList: [user.ip],
           pc_hwid: '',
           access: {}
-        };
-
-        cUsers.insertOne(newUser, function (err, writeStatus) {
+        }, function (err, writeStatus) {
           if (writeStatus) {
-            console.log('createUser("'+ newUser.username +'", "'+ newUser.discordId +'", "'+ user.ip +'")');
+            console.log('createUser("'+ user.username +'", "'+ user.discordId +'", "'+ user.ip +'")');
             resolve(true);
           } else {
             console.log(writeStatus);
-            reportError(reject, ErrorStrings.UNKNOWN);
+            reportError(reject, "There was an error creating the user");
           }
         });
       } else {
-        reportError(reject, ErrorStrings.UNAUTHORIZED);
+        reportError(reject, "User Not Authorized to access this Data");
       }
     });
   }).catch((error) => {
@@ -402,11 +399,13 @@ function isAuthOrMod(reqID, userID) {
     cUsers.findOne({uniqueid: sanitizeString(reqID)}, function(err, user) {
       if (err) {
         console.log(err);
-        reportError(reject, ErrorStrings.UNKNOWN);
+        reportError(reject, "Error Authorizing (" + reqID + "): ");
+      } else if (user == null) {
+        reportError(reject, "Invalid User");
       } else if (reqID == userID || user.rank >= Ranks.Moderator) {
         resolve(true);
       } else {
-        reportError(reject, ErrorStrings.UNAUTHORIZED);
+        reportError(reject, "Failed to authorize " + reqID);
       }
     });
   }).catch((error) => {
@@ -421,11 +420,13 @@ function isAuthOrAdmin(reqID, userID) {
     cUsers.findOne({uniqueid: sanitizeString(reqID)}, function(err, user) {
       if (err) {
         console.log(err);
-        reportError(reject, ErrorStrings.UNKNOWN);
+        reportError(reject, "Error Authorizing (" + reqID + "): ");
+      } else if (user == null) {
+        reportError(reject, "Invalid User");
       } else if (reqID == userID || user.rank >= Ranks.Admin) {
         resolve(true);
       } else {
-        reportError(reject, ErrorStrings.UNAUTHORIZED);
+        reportError(reject, "Failed to authorize " + reqID);
       }
     });
   }).catch((error) => {
@@ -455,6 +456,17 @@ function isHex(unknownString) {
 }
 
 //============================ Enums and Classes ==============================
+const APIStatus = {
+  Success: 204,
+  Accepted: 202,
+  ClientError: 400,
+  NoID: 511,
+  LowRank: 401,
+  InvalidArguments: 406,
+  Spam: 429,
+  ServerError: 500,
+  NotImplemented: 501
+}
 
 const Ranks = {
   Guest: '0',
@@ -465,12 +477,6 @@ const Ranks = {
   Developer: '5',
   Admin: '6',
   Owner: '7'
-}
-
-const AccountStatus = {
-  Unverified: '0',
-  Verified: '1',
-  Banned: '2'
 }
 
 const SearchTypes = {
@@ -491,13 +497,4 @@ const FieldType = {
   ipList: "ipList",
   pc_hwid: "pc_hwid",
   access: "access"
-}
-
-const ErrorStrings = {
-  INVALID_FIELD: "INVALID_FIELD",
-  INVALID_ID: "INVALID_ID",
-  INVALID_SEARCH: "INVALID_SEARCH",
-  INVALID_USER: "INVALID_USER",
-  UNAUTHORIZED: "UNAUTHORIZED",
-  UNKNOWN: "UNKNOWN"
 }
