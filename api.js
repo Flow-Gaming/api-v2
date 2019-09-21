@@ -1,3 +1,4 @@
+var packageInfo = require('./package.json');
 var express = require('express');
 var app = express();
 var cookieParser = require('cookie-parser');
@@ -127,6 +128,11 @@ app.use('/graphql', graphqlHTTP(function(req, res, params) {
     context: { req, res, params }
   }
 }));
+
+app.get('/', (req, res) => {
+  res.send(packageInfo.description + " on build " + packageInfo.version);
+});
+
 
 //=========================== Functions =============================
 
