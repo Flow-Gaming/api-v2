@@ -204,20 +204,15 @@ function getUser (search, context) {
 function getAllUsers(token, context) {
   return new Promise((resolve, reject) => {
     console.log(token);
-    isAuthOrAdmin(token, passwords.serverIdToken).then((isUserAuthed) => {
-      if (isUserAuthed) {
+    isAuthOrAdmin(token, passwords.serverIdToken).then(() => {
+      console.log("getAllUsers() from "+ sanitizeString(context.req.cookies.id));
+      var cUsers = dbo.collection("users");
 
-        console.log("getAllUsers() from "+ sanitizeString(context.req.cookies.id));
-        var cUsers = dbo.collection("users");
+      cUsers.find({username: {$ne: "server"}}).toArray(function(err, users) {
+        if (err) reportError(reject, err);
 
-        cUsers.find({username: {$ne: "server"}}).toArray(function(err, users) {
-          if (err) reportError(reject, err);
-
-          resolve(users);
-        });
-      } else {
-        reportError(reject, ErrorStrings.UNAUTHORIZED);
-      }
+        resolve(users);
+      });
     });
   }).catch((error) => {
     console.log(error);
