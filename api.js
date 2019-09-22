@@ -145,85 +145,52 @@ function getUser (search, context) {
     console.log('getUser(' + search.type + ', ' + search.identifier + ') from ' + context.req.cookies.id);
     var cUsers = dbo.collection("users");
 
-    switch (search.type) {
-      case SearchTypes.uniqueid:
-        resolve(new Promise((resolve, reject) => {
-          cUsers.findOne({uniqueid: search.identifier}, function(err, res) {
+    isAuthOrMod(context.req.cookies.id, res.uniqueid).then(() => {
+      switch (search.type) {
+        case SearchTypes.uniqueid:
+          cUsers.findOne({uniqueid: search.identifier}, function(err, user) {
             if (err) reject(err);
-            if (res == null) {
+            if (user == null) {
               return reportError(reject, ErrorStrings.INVALID_SEARCH);
             } else {
-              isAuthOrMod(context.req.cookies.id, res.uniqueid).then((isUserAuthed) => {
-                if (isUserAuthed) {
-                  resolve(res);
-                } else {
-                  reportError(reject, ErrorStrings.UNAUTHORIZED);
-                }
-              });
+              resolve(user);
             }
           });
-        }));
-        break;
-      case SearchTypes.discordId:
-        resolve(new Promise((resolve, reject) => {
-          cUsers.findOne({discordId: search.identifier}, function(err, res) {
+          break;
+        case SearchTypes.discordId:
+          cUsers.findOne({discordId: search.identifier}, function(err, user) {
             if (err) reject(err);
-            if (res == null) {
-              reportError(reject, ErrorStrings.INVALID_SEARCH);
+            if (user == null) {
+              return reportError(reject, ErrorStrings.INVALID_SEARCH);
             } else {
-              isAuthOrMod(context.req.cookies.id, res.uniqueid).then((isUserAuthed) => {
-                if (isUserAuthed) {
-                  resolve(res);
-                } else {
-                  reportError(reject, ErrorStrings.UNAUTHORIZED);
-                }
-              });
+              resolve(user);
             }
           });
-        }));
-        break;
-      case SearchTypes.username:
-        resolve(new Promise((resolve, reject) => {
-          cUsers.findOne({username: search.identifier}, function(err, res) {
-            console.log(search.identifier);
+          break;
+        case SearchTypes.username:
+          cUsers.findOne({username: search.identifier}, function(err, user) {
             if (err) reject(err);
-
-            if (res == null) {
-              reportError(reject, ErrorStrings.INVALID_SEARCH);
+            if (user == null) {
+              return reportError(reject, ErrorStrings.INVALID_SEARCH);
             } else {
-              isAuthOrMod(context.req.cookies.id, res.uniqueid).then((isUserAuthed) => {
-                console.log(isUserAuthed);
-                if (isUserAuthed) {
-                  resolve(res);
-                } else {
-                  reportError(reject, ErrorStrings.UNAUTHORIZED);
-                }
-              });
+              resolve(user);
             }
           });
-        }));
-        break;
-      case SearchTypes.email:
-        resolve(new Promise((resolve, reject) => {
-          cUsers.findOne({email: search.identifier}, function(err, res) {
+          break;
+        case SearchTypes.email:
+          cUsers.findOne({email: search.identifier}, function(err, user) {
             if (err) reject(err);
-            if (res == null) {
-              reportError(reject, ErrorStrings.INVALID_SEARCH);
+            if (user == null) {
+              return reportError(reject, ErrorStrings.INVALID_SEARCH);
             } else {
-              isAuthOrMod(context.req.cookies.id, res.uniqueid).then((isUserAuthed) => {
-                if (isUserAuthed) {
-                  resolve(res);
-                } else {
-                  return reportError(ErrorStrings.UNAUTHORIZED);
-                }
-              });
+              resolve(user);
             }
           });
-        }));
-        break;
-      default:
-        reportError(reject, ErrorStrings.INVALID_SEARCH);
-    }
+          break;
+        default:
+          reportError(reject, ErrorStrings.INVALID_SEARCH);
+      }
+    });
   });
 }
 
@@ -253,108 +220,104 @@ function getAllUsers(token, context) {
 
 function editUser (user, context) {
   return new Promise((resolve, reject) => {
-    isAuthOrMod(context.req.cookies.id, user.uniqueid).then((isUserAuthed) => {
-      if (isUserAuthed) {
-        if (
-          user.field != FieldType.rank &&
-          user.field != FieldType.username &&
-          user.field != FieldType.uniqueid &&
-          user.field != FieldType.email &&
-          user.field != FieldType.discordId &&
-          user.field != FieldType.discordName &&
-          user.field != FieldType.accountStatus &&
-          user.field != FieldType.ipList &&
-          user.field != FieldType.pc_hwid &&
-          user.field != FieldType.access
-        ) reportError(reject, ErrorStrings.INVALID_FIELD);
-        console.log("editUser("+ user.uniqueid +", "+ user.field +", "+ user.data +") from "+ sanitizeString(context.req.cookies.id));
+    isAuthOrMod(context.req.cookies.id, user.uniqueid).then(() => {
+      if (
+        user.field != FieldType.rank &&
+        user.field != FieldType.username &&
+        user.field != FieldType.uniqueid &&
+        user.field != FieldType.email &&
+        user.field != FieldType.discordId &&
+        user.field != FieldType.discordName &&
+        user.field != FieldType.accountStatus &&
+        user.field != FieldType.ipList &&
+        user.field != FieldType.pc_hwid &&
+        user.field != FieldType.access
+      ) reportError(reject, ErrorStrings.INVALID_FIELD);
+      console.log("editUser("+ user.uniqueid +", "+ user.field +", "+ user.data +") from "+ sanitizeString(context.req.cookies.id));
 
-        var cUsers = dbo.collection("users");
+      var cUsers = dbo.collection("users");
 
-        switch (user.field) {
-          case FieldType.rank:
-            cUsers.findOne({uniqueid: sanitizeString(context.req.cookies.id)}, function(err, myUserData) {
-              if ((parseInt(myUserData.rank) >= Ranks.Admin) && (parseInt(myUserData.rank) > parseInt(user.data))) {
-                cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: {rank: user.data}}, function(err, commandResult) {
-                  console.log(commandResult.result);
-                  resolve(true);
-                });
-              } else {
-                reportError(reject, ErrorStrings.UNAUTHORIZED);
-              }
-            });
-            break;
-          case FieldType.username:
-            cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { username: sanitizeString(user.data)}}, function(err, commandResult) {
-              console.log(commandResult.result);
-              resolve(true);
-            });
-            break;
-          case FieldType.uniqueid:
-            cUsers.findOne({uniqueid: sanitizeString(context.req.cookies.id)}, function(err, myUserData) {
-              if (myUserData.rank >= Ranks.Admin) {
-                cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { uniqueid: sanitizeString(user.data)}}, function(err, commandResult) {
-                  console.log(commandResult.result);
-                  resolve(true);
-                });
-              } else {
-                reportError(reject, ErrorStrings.UNAUTHORIZED);
-              }
-            });
-            break;
-          case FieldType.email:
-            cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { email: sanitizeString(user.data)}}, function(err, commandResult) {
-              console.log(commandResult.result);
-              resolve(true);
-            });
-            break;
-          case FieldType.discordId:
-            cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { discordId: sanitizeString(user.data)}}, function(err, commandResult) {
-              console.log(commandResult.result);
-              resolve(true);
-            });
-            break;
-          case FieldType.discordName:
-            cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { discordName: sanitizeString(user.data)}}, function(err, commandResult) {
-              console.log(commandResult.result);
-              resolve(true);
-            });
-            break;
-          case FieldType.accountStatus:
-            cUsers.findOne({uniqueid: sanitizeString(user.uniqueid)}, function(err, userData) {
-              if (userData.rank >= Ranks.Admin) {
-                cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { accountStatus: sanitizeString(user.data)}}, function(err, commandResult) {
-                  console.log(commandResult.result);
-                  resolve(true);
-                });
-              } else {
-                reportError(reject, ErrorStrings.UNAUTHORIZED);
-              }
-            });
-            break;
-          case FieldType.ipList:
-            cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { ipList: user.data}}, function(err, commandResult) {
-              console.log(commandResult.result);
-              resolve(true);
-            });
-            break;
-          case FieldType.pc_hwid:
-            cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { pc_hwid: user.data}}, function(err, commandResult) {
-              console.log(commandResult.result);
-              resolve(true);
-            });
-            break;
-          case FieldType.access:
-            cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { access: user.data}}, function(err, commandResult) {
-              console.log(commandResult.result);
-              resolve(true);
-            });
-            break;
-          default:
-            reportError(reject, ErrorStrings.INVALID_FIELD);
-        }
-      } else {
-        reportError(reject, ErrorStrings.UNAUTHORIZED);
+      switch (user.field) {
+        case FieldType.rank:
+          cUsers.findOne({uniqueid: sanitizeString(context.req.cookies.id)}, function(err, myUserData) {
+            if ((parseInt(myUserData.rank) >= Ranks.Admin) && (parseInt(myUserData.rank) > parseInt(user.data))) {
+              cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: {rank: user.data}}, function(err, commandResult) {
+                console.log(commandResult.result);
+                resolve(true);
+              });
+            } else {
+              reportError(reject, ErrorStrings.UNAUTHORIZED);
+            }
+          });
+          break;
+        case FieldType.username:
+          cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { username: sanitizeString(user.data)}}, function(err, commandResult) {
+            console.log(commandResult.result);
+            resolve(true);
+          });
+          break;
+        case FieldType.uniqueid:
+          cUsers.findOne({uniqueid: sanitizeString(context.req.cookies.id)}, function(err, myUserData) {
+            if (myUserData.rank >= Ranks.Admin) {
+              cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { uniqueid: sanitizeString(user.data)}}, function(err, commandResult) {
+                console.log(commandResult.result);
+                resolve(true);
+              });
+            } else {
+              reportError(reject, ErrorStrings.UNAUTHORIZED);
+            }
+          });
+          break;
+        case FieldType.email:
+          cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { email: sanitizeString(user.data)}}, function(err, commandResult) {
+            console.log(commandResult.result);
+            resolve(true);
+          });
+          break;
+        case FieldType.discordId:
+          cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { discordId: sanitizeString(user.data)}}, function(err, commandResult) {
+            console.log(commandResult.result);
+            resolve(true);
+          });
+          break;
+        case FieldType.discordName:
+          cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { discordName: sanitizeString(user.data)}}, function(err, commandResult) {
+            console.log(commandResult.result);
+            resolve(true);
+          });
+          break;
+        case FieldType.accountStatus:
+          cUsers.findOne({uniqueid: sanitizeString(user.uniqueid)}, function(err, userData) {
+            if (userData.rank >= Ranks.Admin) {
+              cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { accountStatus: sanitizeString(user.data)}}, function(err, commandResult) {
+                console.log(commandResult.result);
+                resolve(true);
+              });
+            } else {
+              reportError(reject, ErrorStrings.UNAUTHORIZED);
+            }
+          });
+          break;
+        case FieldType.ipList:
+          cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { ipList: user.data}}, function(err, commandResult) {
+            console.log(commandResult.result);
+            resolve(true);
+          });
+          break;
+        case FieldType.pc_hwid:
+          cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { pc_hwid: user.data}}, function(err, commandResult) {
+            console.log(commandResult.result);
+            resolve(true);
+          });
+          break;
+        case FieldType.access:
+          cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { access: user.data}}, function(err, commandResult) {
+            console.log(commandResult.result);
+            resolve(true);
+          });
+          break;
+        default:
+          reportError(reject, ErrorStrings.INVALID_FIELD);
       }
     });
   }).catch((error) => {
@@ -449,14 +412,6 @@ function sanitizeString(unsanitaryString) {
     return '';
 
   return unsanitaryString.replace(/[^\w\s_.:!@#-]/, "");
-}
-
-function isHex(unknownString) {
-  if ((/[0-9A-Fa-f]{6}/g).test(unknownString)) {
-      return true;
-  } else {
-      return false;
-  }
 }
 
 //============================ Enums and Classes ==============================
