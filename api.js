@@ -373,7 +373,7 @@ function isAuthOrMod(reqID, userID) {
       if (err) {
         console.log(err);
         reportError(reject, ErrorStrings.UNKNOWN);
-      } else if (reqID == userID || user.rank >= Ranks.Moderator) {
+      } else if (reqID == userID || parseInt(user.rank) >= parseInt(Ranks.Moderator)) {
         resolve(true);
       } else {
         reportError(reject, ErrorStrings.UNAUTHORIZED);
@@ -392,7 +392,7 @@ function isAuthOrAdmin(reqID, userID) {
       if (err) {
         console.log(err);
         reportError(reject, ErrorStrings.UNKNOWN);
-      } else if (reqID == userID || user.rank >= Ranks.Admin) {
+      } else if (reqID == userID || parseInt(user.rank) >= parseInt(Ranks.Admin)) {
         resolve(true);
       } else {
         reportError(reject, ErrorStrings.UNAUTHORIZED);
