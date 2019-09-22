@@ -140,63 +140,64 @@ function getUser (search, context) {
       reportError(reject, "Request is Null");
     } else if (context.req.cookies.id == null) {
       reportError(reject, ErrorStrings.INVALID_ID);
-    }
+    } else {
+      console.log('getUser(' + search.type + ', ' + search.identifier + ') from ' + context.req.cookies.id);
+      var cUsers = dbo.collection("users");
 
-    console.log('getUser(' + search.type + ', ' + search.identifier + ') from ' + context.req.cookies.id);
-    var cUsers = dbo.collection("users");
 
-
-    switch (search.type) {
-      case SearchTypes.uniqueid:
-        cUsers.findOne({uniqueid: search.identifier}, function(err, user) {
-          if (err) reject(err);
-          if (user == null) {
-            return reportError(reject, ErrorStrings.INVALID_SEARCH);
-          } else {
-            isAuthOrAdmin(context.req.cookies.id, user.uniqueid).then(() => {
-              resolve(user);
-            });
-          }
-        });
-        break;
-      case SearchTypes.discordId:
-        cUsers.findOne({discordId: search.identifier}, function(err, user) {
-          if (err) reject(err);
-          if (user == null) {
-            return reportError(reject, ErrorStrings.INVALID_SEARCH);
-          } else {
-            isAuthOrAdmin(context.req.cookies.id, user.uniqueid).then(() => {
-              resolve(user);
-            });
-          }
-        });
-        break;
-      case SearchTypes.username:
-        cUsers.findOne({username: search.identifier}, function(err, user) {
-          if (err) reject(err);
-          if (user == null) {
-            return reportError(reject, ErrorStrings.INVALID_SEARCH);
-          } else {
-            isAuthOrAdmin(context.req.cookies.id, user.uniqueid).then(() => {
-              resolve(user);
-            });
-          }
-        });
-        break;
-      case SearchTypes.email:
-        cUsers.findOne({email: search.identifier}, function(err, user) {
-          if (err) reject(err);
-          if (user == null) {
-            return reportError(reject, ErrorStrings.INVALID_SEARCH);
-          } else {
-            isAuthOrAdmin(context.req.cookies.id, user.uniqueid).then(() => {
-              resolve(user);
-            });
-          }
-        });
-        break;
-      default:
-        reportError(reject, ErrorStrings.INVALID_SEARCH);
+      switch (search.type) {
+        case SearchTypes.uniqueid:
+          cUsers.findOne({uniqueid: search.identifier}, function(err, user) {
+            if (err) reject(err);
+            if (user == null) {
+              return reportError(reject, ErrorStrings.INVALID_SEARCH);
+            } else {
+              isAuthOrAdmin(reject, context.req.cookies.id, user.uniqueid).then(() => {
+                resolve(user);
+              });
+            }
+          });
+          break;
+        case SearchTypes.discordId:
+          cUsers.findOne({discordId: search.identifier}, function(err, user) {
+            if (err) reject(err);
+            if (user == null) {
+              return reportError(reject, ErrorStrings.INVALID_SEARCH);
+            } else {
+              isAuthOrAdmin(reject, context.req.cookies.id, user.uniqueid).then((isAuthed) => {
+                console.log(isAuthed);
+                resolve(user);
+              });
+            }
+          });
+          break;
+        case SearchTypes.username:
+          cUsers.findOne({username: search.identifier}, function(err, user) {
+            if (err) reject(err);
+            if (user == null) {
+              return reportError(reject, ErrorStrings.INVALID_SEARCH);
+            } else {
+              isAuthOrAdmin(reject, context.req.cookies.id, user.uniqueid).then(() => {
+                resolve(user);
+              });
+            }
+          });
+          break;
+        case SearchTypes.email:
+          cUsers.findOne({email: search.identifier}, function(err, user) {
+            if (err) reject(err);
+            if (user == null) {
+              return reportError(reject, ErrorStrings.INVALID_SEARCH);
+            } else {
+              isAuthOrAdmin(reject, context.req.cookies.id, user.uniqueid).then(() => {
+                resolve(user);
+              });
+            }
+          });
+          break;
+        default:
+          reportError(reject, ErrorStrings.INVALID_SEARCH);
+      }
     }
   });
 }
@@ -204,7 +205,7 @@ function getUser (search, context) {
 function getAllUsers(token, context) {
   return new Promise((resolve, reject) => {
     console.log(token);
-    isAuthOrAdmin(token, passwords.serverIdToken).then(() => {
+    isAuthOrAdmin(reject, token, passwords.serverIdToken).then(() => {
       console.log("getAllUsers() from "+ sanitizeString(context.req.cookies.id));
       var cUsers = dbo.collection("users");
 
@@ -222,7 +223,7 @@ function getAllUsers(token, context) {
 
 function editUser (user, context) {
   return new Promise((resolve, reject) => {
-    isAuthOrMod(context.req.cookies.id, user.uniqueid).then(() => {
+    isAuthOrMod(reject, context.req.cookies.id, user.uniqueid).then(() => {
       if (
         user.field != FieldType.rank &&
         user.field != FieldType.username &&
@@ -290,7 +291,7 @@ function editUser (user, context) {
           break;
         case FieldType.accountStatus:
           cUsers.findOne({uniqueid: sanitizeString(user.uniqueid)}, function(err, userData) {
-            if (userData.rank >= Ranks.Admin) {
+            if (userData.rank >= Ranks.Admin && parseInt(user.data) >= parseInt(AccountStatus.Unverified) && parseInt(user.data) <= parseInt(AccountStatus.Banned)) {
               cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { accountStatus: sanitizeString(user.data)}}, function(err, commandResult) {
                 console.log(commandResult.result);
                 resolve(true);
@@ -330,7 +331,7 @@ function editUser (user, context) {
 
 function createUser (user, context) {
   return new Promise((resolve, reject) => {
-    isAuthOrAdmin(context.req.cookies.id, passwords.serverIdToken).then((isUserAuthed) => {
+    isAuthOrAdmin(reject, context.req.cookies.id, passwords.serverIdToken).then((isUserAuthed) => {
       if (isUserAuthed) {
         var cUsers = dbo.collection("users");
 
@@ -366,17 +367,17 @@ function createUser (user, context) {
   });
 }
 
-function isAuthOrMod(reqID, userID) {
+function isAuthOrMod(oReject, reqID, userID) {
   return new Promise((resolve, reject) => {
     var cUsers = dbo.collection("users");
     cUsers.findOne({uniqueid: sanitizeString(reqID)}, function(err, user) {
       if (err) {
         console.log(err);
-        reportError(reject, ErrorStrings.UNKNOWN);
+        reportError(oReject, ErrorStrings.UNKNOWN);
       } else if (reqID == userID || parseInt(user.rank) >= parseInt(Ranks.Moderator)) {
         resolve(true);
       } else {
-        reportError(reject, ErrorStrings.UNAUTHORIZED);
+        reportError(oReject, ErrorStrings.UNAUTHORIZED);
       }
     });
   }).catch((error) => {
@@ -385,17 +386,17 @@ function isAuthOrMod(reqID, userID) {
   });
 }
 
-function isAuthOrAdmin(reqID, userID) {
+function isAuthOrAdmin(oReject, reqID, userID) {
   return new Promise((resolve, reject) => {
     var cUsers = dbo.collection("users");
     cUsers.findOne({uniqueid: sanitizeString(reqID)}, function(err, user) {
       if (err) {
         console.log(err);
-        reportError(reject, ErrorStrings.UNKNOWN);
+        reportError(oReject, ErrorStrings.UNKNOWN);
       } else if (reqID == userID || parseInt(user.rank) >= parseInt(Ranks.Admin)) {
         resolve(true);
       } else {
-        reportError(reject, ErrorStrings.UNAUTHORIZED);
+        reportError(oReject, ErrorStrings.UNAUTHORIZED);
       }
     });
   }).catch((error) => {
