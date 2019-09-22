@@ -145,52 +145,59 @@ function getUser (search, context) {
     console.log('getUser(' + search.type + ', ' + search.identifier + ') from ' + context.req.cookies.id);
     var cUsers = dbo.collection("users");
 
-    isAuthOrMod(context.req.cookies.id, res.uniqueid).then(() => {
-      switch (search.type) {
-        case SearchTypes.uniqueid:
-          cUsers.findOne({uniqueid: search.identifier}, function(err, user) {
-            if (err) reject(err);
-            if (user == null) {
-              return reportError(reject, ErrorStrings.INVALID_SEARCH);
-            } else {
+
+    switch (search.type) {
+      case SearchTypes.uniqueid:
+        cUsers.findOne({uniqueid: search.identifier}, function(err, user) {
+          if (err) reject(err);
+          if (user == null) {
+            return reportError(reject, ErrorStrings.INVALID_SEARCH);
+          } else {
+            isAuthOrAdmin(context.req.cookies.id, user.uniqueid).then(() => {
               resolve(user);
-            }
-          });
-          break;
-        case SearchTypes.discordId:
-          cUsers.findOne({discordId: search.identifier}, function(err, user) {
-            if (err) reject(err);
-            if (user == null) {
-              return reportError(reject, ErrorStrings.INVALID_SEARCH);
-            } else {
+            });
+          }
+        });
+        break;
+      case SearchTypes.discordId:
+        cUsers.findOne({discordId: search.identifier}, function(err, user) {
+          if (err) reject(err);
+          if (user == null) {
+            return reportError(reject, ErrorStrings.INVALID_SEARCH);
+          } else {
+            isAuthOrAdmin(context.req.cookies.id, user.uniqueid).then(() => {
               resolve(user);
-            }
-          });
-          break;
-        case SearchTypes.username:
-          cUsers.findOne({username: search.identifier}, function(err, user) {
-            if (err) reject(err);
-            if (user == null) {
-              return reportError(reject, ErrorStrings.INVALID_SEARCH);
-            } else {
+            });
+          }
+        });
+        break;
+      case SearchTypes.username:
+        cUsers.findOne({username: search.identifier}, function(err, user) {
+          if (err) reject(err);
+          if (user == null) {
+            return reportError(reject, ErrorStrings.INVALID_SEARCH);
+          } else {
+            isAuthOrAdmin(context.req.cookies.id, user.uniqueid).then(() => {
               resolve(user);
-            }
-          });
-          break;
-        case SearchTypes.email:
-          cUsers.findOne({email: search.identifier}, function(err, user) {
-            if (err) reject(err);
-            if (user == null) {
-              return reportError(reject, ErrorStrings.INVALID_SEARCH);
-            } else {
+            });
+          }
+        });
+        break;
+      case SearchTypes.email:
+        cUsers.findOne({email: search.identifier}, function(err, user) {
+          if (err) reject(err);
+          if (user == null) {
+            return reportError(reject, ErrorStrings.INVALID_SEARCH);
+          } else {
+            isAuthOrAdmin(context.req.cookies.id, user.uniqueid).then(() => {
               resolve(user);
-            }
-          });
-          break;
-        default:
-          reportError(reject, ErrorStrings.INVALID_SEARCH);
-      }
-    });
+            });
+          }
+        });
+        break;
+      default:
+        reportError(reject, ErrorStrings.INVALID_SEARCH);
+    }
   });
 }
 
