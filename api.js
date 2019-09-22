@@ -5,7 +5,6 @@ var cookieParser = require('cookie-parser');
 var passwords = require('./passwords.json');
 var uuidv4 = require('uuid/v4');
 var MongoClient = require('mongodb').MongoClient;
-var Mongo = require('mongodb');
 var graphqlHTTP = require('express-graphql');
 var { buildSchema } = require('graphql');
 
@@ -45,11 +44,11 @@ var schema = buildSchema(`
     name: [String]
   }
 
-  type Access{
+  type Access {
     games: [Game]
   }
 
-  type User{
+  type User {
     rank: String
     username: String
     uniqueid: String
@@ -132,7 +131,6 @@ app.use('/graphql', graphqlHTTP(function(req, res, params) {
 app.get('/', (req, res) => {
   res.send(packageInfo.description + " on build " + packageInfo.version);
 });
-
 
 //=========================== Functions =============================
 
@@ -337,6 +335,7 @@ function editUser (user, context) {
           case FieldType.ipList:
             cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { ipList: user.data}}, function(err, commandResult) {
               console.log(commandResult.result);
+              resolve(true);
             });
             break;
           case FieldType.pc_hwid:
