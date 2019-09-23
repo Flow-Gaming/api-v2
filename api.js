@@ -101,11 +101,11 @@ var root = {
     return getMe(context);
   },
 
-  getUser: function (search, context) {
-    if (search.id == "0")
+  getUser: function (params, context) {
+    if (params.id == "0")
       return;
 
-    return getUser({type: search.search, identifier: search.id}, context);
+    return getUser({type: params.search, identifier: params.id}, context);
   },
 
   getAllUsers: function (token, context) {
@@ -113,12 +113,12 @@ var root = {
     else return getAllUsers(sanitizeString(context.req.cookies.id), context)
   },
 
-  editUser: function (user, context) {
-    return editUser(user, context);
+  editUser: function (params, context) {
+    return editUser(params, context);
   },
 
-  createUser: function (user, context) {
-    return createUser({username: user.username, email: user.email, discordId: user.discordId, discordName: user.discordName, ip: user.ip}, context);
+  createUser: function (params, context) {
+    return createUser({username: params.username, email: params.email, discordId: params.discordId, discordName: params.discordName, ip: params.ip}, context);
   }
 };
 
