@@ -82,6 +82,8 @@ var schema = buildSchema(`
   }
 
   type Query {
+    getMe(uniqueid: String): User
+
     getUser(search: SearchType!, id: String!): User
 
     getAllUsers(serverToken: String): [User]
@@ -95,6 +97,10 @@ var schema = buildSchema(`
 `);
 
 var root = {
+  getMe: function (params, context) {
+    return getMe(context);
+  },
+
   getUser: function (search, context) {
     if (search.id == "0")
       return;
@@ -133,6 +139,26 @@ app.get('/', (req, res) => {
 });
 
 //=========================== Functions =============================
+
+function getMe(context) {
+  return new Promise((resolve, reject) => {
+    if (context.req.cookies.id == null) {
+      reportError(reject, ErrorStrings.INVALID_ID);
+    } else {
+      var cookie = sanitizeString(context.req.cookies.id);
+      console.log("getMe() from "+ cookie);
+      var cUsers = dbo.collection("users");
+
+      cUsers.findOne({uniqueid: cookie}, function(err, me) {
+        if (err) reportError(reject, err);
+        resolve(me);
+      });
+    }
+  }).catch((error) => {
+    console.log(error);
+    return false;
+  });
+}
 
 function getUser (search, context) {
   return new Promise((resolve, reject) => {
@@ -199,6 +225,9 @@ function getUser (search, context) {
           reportError(reject, ErrorStrings.INVALID_SEARCH);
       }
     }
+  }).catch((error) => {
+    console.log(error);
+    return false;
   });
 }
 
@@ -206,7 +235,7 @@ function getAllUsers(token, context) {
   return new Promise((resolve, reject) => {
     console.log(token);
     isAuthOrAdmin(reject, token, passwords.serverIdToken).then(() => {
-      console.log("getAllUsers() from "+ sanitizeString(context.req.cookies.id));
+      console.log("getAllUsers() from "+ sanitizeString(token));
       var cUsers = dbo.collection("users");
 
       cUsers.find({username: {$ne: "server"}}).toArray(function(err, users) {
