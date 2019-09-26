@@ -98,7 +98,11 @@ var schema = buildSchema(`
 
 var root = {
   getMe: function (params, context) {
-    return getMe(context);
+    if (params.uniqueid != null) {
+      return getMe(params.uniqueid);
+    } else {
+      return getMe(context.req.cookies.id);
+    }
   },
 
   getUser: function (params, context) {
@@ -140,12 +144,12 @@ app.get('/', (req, res) => {
 
 //=========================== Functions =============================
 
-function getMe(context) {
+function getMe(token) {
   return new Promise((resolve, reject) => {
-    if (context.req.cookies.id == null) {
+    if (token == null) {
       reportError(reject, ErrorStrings.INVALID_ID);
     } else {
-      var cookie = sanitizeString(context.req.cookies.id);
+      var cookie = sanitizeString(token);
       console.log("getMe() from "+ cookie);
       var cUsers = dbo.collection("users");
 
