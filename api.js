@@ -169,6 +169,7 @@ function getUser (search, context) {
     if (context.req == null) {
       reportError(reject, "Request is Null");
     } else if (context.req.cookies.id == null) {
+      console.log(context.req);
       reportError(reject, ErrorStrings.INVALID_ID);
     } else {
       console.log('getUser(' + search.type + ', ' + search.identifier + ') from ' + context.req.cookies.id);
@@ -401,11 +402,17 @@ function createUser (user, context) {
 }
 
 function isAuthOrMod(oReject, reqID, userID) {
+  console.log(reqID);
+  console.log(userID);
   return new Promise((resolve, reject) => {
     var cUsers = dbo.collection("users");
     cUsers.findOne({uniqueid: sanitizeString(reqID)}, function(err, user) {
       if (err) {
         console.log(err);
+        reportError(oReject, ErrorStrings.UNKNOWN);
+      } else if (user == null) {
+        reportError(oReject, ErrorStrings.INVALID_ID);
+      } else if (!user.hasOwnProperty('rank')) {
         reportError(oReject, ErrorStrings.UNKNOWN);
       } else if (reqID == userID || parseInt(user.rank) >= parseInt(Ranks.Moderator)) {
         resolve(true);
@@ -425,6 +432,10 @@ function isAuthOrAdmin(oReject, reqID, userID) {
     cUsers.findOne({uniqueid: sanitizeString(reqID)}, function(err, user) {
       if (err) {
         console.log(err);
+        reportError(oReject, ErrorStrings.UNKNOWN);
+      } else if (user == null) {
+        reportError(oReject, ErrorStrings.INVALID_ID);
+      } else if (!user.hasOwnProperty('rank')) {
         reportError(oReject, ErrorStrings.UNKNOWN);
       } else if (reqID == userID || parseInt(user.rank) >= parseInt(Ranks.Admin)) {
         resolve(true);
