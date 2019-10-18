@@ -7,6 +7,10 @@ var uuidv4 = require('uuid/v4');
 var MongoClient = require('mongodb').MongoClient;
 var graphqlHTTP = require('express-graphql');
 var { buildSchema } = require('graphql');
+var request = require('request').defaults({jar: true});
+var serverCookie = request.jar();
+const discordAPIUrl = 'http://flowgaming.org:4650';
+serverCookie.setCookie('id=' + passwords.serverIdToken, discordAPIUrl);
 
 app.set('view engine', 'pug');
 app.use(cookieParser());
@@ -19,7 +23,7 @@ MongoClient.connect("mongodb://localhost:27017/", function(err, db) {
   dbo = db.db("flow_gaming");
 
   server = app.listen(4690, function () {
-     console.log("API 2.0 Server listening on port "+ server.address().port)
+    console.log("API 2.0 Server listening on port "+ server.address().port);
   })
 });
 
@@ -278,9 +282,21 @@ function editUser (user, context) {
         case FieldType.rank:
           cUsers.findOne({uniqueid: sanitizeString(context.req.cookies.id)}, function(err, myUserData) {
             if ((parseInt(myUserData.rank) >= Ranks.Admin) && (parseInt(myUserData.rank) > parseInt(user.data))) {
-              cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: {rank: user.data}}, function(err, commandResult) {
-                console.log(commandResult.result);
-                resolve(true);
+              cUsers.findOne({uniqueid: sanitizeString(user.uniqueid)}, function(err, editUserData) {
+                if ((parseInt(myUserData.rank) >= Ranks.Admin) && (parseInt(myUserData.rank) > parseInt(user.data))) {
+                    request.get({url:discordAPIUrl + '/users/'+editUserData.discordId+'/rank/' + user.data, jar: serverCookie})
+                    .on('response', function(response) {
+                      if (response.statusCode == 200) {
+                        cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: {rank: user.data}}, function(err, commandResult) {
+                          resolve(true);
+                        });
+                      } else {
+                        reportError(reject, ErrorStrings.DISCORDERROR);
+                      }
+                    });
+                  } else {
+                    reportError(reject, ErrorStrings.UNAUTHORIZED);
+                  }
               });
             } else {
               reportError(reject, ErrorStrings.UNAUTHORIZED);
