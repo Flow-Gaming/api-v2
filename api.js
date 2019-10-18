@@ -283,20 +283,16 @@ function editUser (user, context) {
           cUsers.findOne({uniqueid: sanitizeString(context.req.cookies.id)}, function(err, myUserData) {
             if ((parseInt(myUserData.rank) >= Ranks.Admin) && (parseInt(myUserData.rank) > parseInt(user.data))) {
               cUsers.findOne({uniqueid: sanitizeString(user.uniqueid)}, function(err, editUserData) {
-                if ((parseInt(myUserData.rank) >= Ranks.Admin) && (parseInt(myUserData.rank) > parseInt(user.data))) {
-                    request.get({url:discordAPIUrl + '/users/'+editUserData.discordId+'/rank/' + user.data, jar: serverCookie})
-                    .on('response', function(response) {
-                      if (response.statusCode == 200) {
-                        cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: {rank: user.data}}, function(err, commandResult) {
-                          resolve(true);
-                        });
-                      } else {
-                        reportError(reject, ErrorStrings.DISCORDERROR);
-                      }
+                request.get({url:discordAPIUrl + '/users/'+editUserData.discordId+'/rank/' + user.data, jar: serverCookie})
+                .on('response', function(response) {
+                  if (response.statusCode == 200) {
+                    cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: {rank: user.data}}, function(err, commandResult) {
+                      resolve(true);
                     });
                   } else {
-                    reportError(reject, ErrorStrings.UNAUTHORIZED);
+                    reportError(reject, ErrorStrings.DISCORDERROR);
                   }
+                });
               });
             } else {
               reportError(reject, ErrorStrings.UNAUTHORIZED);
@@ -304,9 +300,19 @@ function editUser (user, context) {
           });
           break;
         case FieldType.username:
-          cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { username: sanitizeString(user.data)}}, function(err, commandResult) {
-            console.log(commandResult.result);
-            resolve(true);
+          cUsers.findOne({uniqueid: sanitizeString(context.req.cookies.id)}, function(err, myUserData) {
+            cUsers.findOne({uniqueid: sanitizeString(user.uniqueid)}, function(err, editUserData) {
+              request.get({url:discordAPIUrl + '/users/'+editUserData.discordId+'/name/' + sanitizeString(user.data), jar: serverCookie})
+              .on('response', function(response) {
+                if (response.statusCode == 200) {
+                  cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { username: sanitizeString(user.data)}}, function(err, commandResult) {
+                    resolve(true);
+                  });
+                } else {
+                  reportError(reject, ErrorStrings.DISCORDERROR);
+                }
+              });
+            });
           });
           break;
         case FieldType.uniqueid:
