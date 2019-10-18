@@ -281,27 +281,21 @@ function editUser (user, context) {
       switch (user.field) {
         case FieldType.rank:
           cUsers.findOne({uniqueid: sanitizeString(context.req.cookies.id)}, function(err, myUserData) {
-            console.log(1);
             if ((parseInt(myUserData.rank) >= Ranks.Admin) && (parseInt(myUserData.rank) > parseInt(user.data))) {
-              console.log(2);
               cUsers.findOne({uniqueid: sanitizeString(user.uniqueid)}, function(err, editUserData) {
-                console.log(3);
                 request.get({url:discordAPIUrl + '/users/'+editUserData.discordId+'/rank/' + user.data, jar: serverCookie})
                 .on('response', function(response) {
-                  console.log(4);
                   if (response.statusCode == 200) {
                     cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: {rank: user.data}}, function(err, commandResult) {
                       resolve(true);
                     });
                   } else {
-                    console.log(5);
                     console.log(response);
                     reportError(reject, ErrorStrings.DISCORDERROR);
                   }
                 });
               });
             } else {
-              console.log(6);
               reportError(reject, ErrorStrings.UNAUTHORIZED);
             }
           });
