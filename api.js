@@ -9,7 +9,7 @@ var graphqlHTTP = require('express-graphql');
 var { buildSchema } = require('graphql');
 var request = require('request').defaults({jar: true});
 var serverCookie = request.jar();
-const discordAPIUrl = 'http://flowgaming.org:4650';
+const discordAPIUrl = 'http://discord.flowgaming.org';
 serverCookie.setCookie('id=' + passwords.serverIdToken, discordAPIUrl);
 
 app.set('view engine', 'pug');
