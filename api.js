@@ -63,6 +63,7 @@ var schema = buildSchema(`
     ipList: [String]
     pc_hwid: String
     access: Access
+    keyId: String
   }
 
   enum SearchType {
@@ -83,6 +84,7 @@ var schema = buildSchema(`
     ipList
     pc_hwid
     access
+    keyId
   }
 
   type Query {
@@ -272,7 +274,8 @@ function editUser (user, context) {
         user.field != FieldType.accountStatus &&
         user.field != FieldType.ipList &&
         user.field != FieldType.pc_hwid &&
-        user.field != FieldType.access
+        user.field != FieldType.access &&
+        user.field != FieldType.keyId
       ) reportError(reject, ErrorStrings.INVALID_FIELD);
       console.log("editUser("+ user.uniqueid +", "+ user.field +", "+ user.data +") from "+ sanitizeString(context.req.cookies.id));
 
@@ -376,6 +379,12 @@ function editUser (user, context) {
             resolve(true);
           });
           break;
+        case FieldType.keyId:
+          cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { keyId: user.data}}, function(err, commandResult) {
+            console.log(commandResult.result);
+            resolve(true);
+          });
+          break;
         default:
           reportError(reject, ErrorStrings.INVALID_FIELD);
       }
@@ -402,7 +411,8 @@ function createUser (user, context) {
           accountStatus: '0',
           ipList: [user.ip],
           pc_hwid: '',
-          access: {}
+          access: {},
+          keyId: ''
         };
 
         cUsers.insertOne(newUser, function (err, writeStatus) {
@@ -520,7 +530,8 @@ const FieldType = {
   accountStatus: "accountStatus",
   ipList: "ipList",
   pc_hwid: "pc_hwid",
-  access: "access"
+  access: "access",
+  keyId: "keyId"
 }
 
 const ErrorStrings = {
