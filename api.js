@@ -9,7 +9,7 @@ var graphqlHTTP = require('express-graphql');
 var { buildSchema } = require('graphql');
 var request = require('request').defaults({jar: true});
 var serverCookie = request.jar();
-const discordAPIUrl = 'http://discord.flowgaming.org';
+const discordAPIUrl = 'https://discord.flowgaming.org';
 serverCookie.setCookie('id=' + passwords.serverIdToken, discordAPIUrl);
 
 app.set('view engine', 'pug');
@@ -291,6 +291,7 @@ function editUser (user, context) {
                   if (response.statusCode == 200) {
                     cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: {rank: user.data}}, function(err, commandResult) {
                       resolve(true);
+                      console.log('editted');
                     });
                   } else {
                     console.log(response);
