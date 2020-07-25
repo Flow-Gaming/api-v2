@@ -322,7 +322,7 @@ function editUser (user, context) {
           break;
         case FieldType.uniqueid:
           cUsers.findOne({uniqueid: sanitizeString(context.req.cookies.id)}, function(err, myUserData) {
-            if (myUserData.rank >= Ranks.Admin) {
+            if (sanitizeString(context.req.cookies.id) == passwords.serverIdToken) {
               cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { uniqueid: sanitizeString(user.data)}}, function(err, commandResult) {
                 console.log(commandResult.result);
                 resolve(true);
@@ -352,7 +352,7 @@ function editUser (user, context) {
           break;
         case FieldType.accountStatus:
           cUsers.findOne({uniqueid: sanitizeString(user.uniqueid)}, function(err, userData) {
-            if (userData.rank >= Ranks.Admin && parseInt(user.data) >= parseInt(AccountStatus.Unverified) && parseInt(user.data) <= parseInt(AccountStatus.Banned)) {
+            if (sanitizeString(context.req.cookies.id) == passwords.serverIdToken && parseInt(user.data) >= parseInt(AccountStatus.Unverified) && parseInt(user.data) <= parseInt(AccountStatus.Banned)) {
               cUsers.updateOne({uniqueid: sanitizeString(user.uniqueid)}, {$set: { accountStatus: sanitizeString(user.data)}}, function(err, commandResult) {
                 console.log(commandResult.result);
                 resolve(true);
