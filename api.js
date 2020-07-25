@@ -409,7 +409,7 @@ function createUser (user, context) {
           email: user.email,
           discordId: user.discordId,
           discordName: user.discordName,
-          accountStatus: '0',
+          accountStatus: '1',
           ipList: [user.ip],
           pc_hwid: '',
           access: {},
